@@ -272,7 +272,7 @@
         game.target.a = getRandomInt(1, 5);       
         game.target.b = getRandomInt(1, 4);       
         game.target.c = getRandomInt(-4, 4);      
-        game.target.d = getRandomInt(-4, 6);      
+        game.target.d = getRandomInt(-4, 4);      
 
         game.user = { a: 1, b: 1, c: 0, d: 0 };
         document.getElementById('input-a').value = "1";
@@ -336,34 +336,6 @@
         }
     }
 
-    // 최대공약수를 구하는 헬퍼 함수 (라디안 표기 단순화용)
-    function gcd(a, b) {
-        return b ? gcd(b, a % b) : Math.abs(a);
-    }
-
-    // 분수를 라디안 문자열로 정밀 포맷팅하는 함수
-    function formatRadianText(numeratorOfPi) {
-        if (numeratorOfPi === 0) return '0';
-        
-        let num = numeratorOfPi;
-        let den = 2; // π/2 간격이므로 분모는 항상 2
-        
-        // 약분
-        let commonGcd = gcd(num, den);
-        num = num / commonGcd;
-        den = den / commonGcd;
-        
-        let sign = num < 0 ? '-' : '';
-        let absNum = Math.abs(num);
-        
-        let piStr = absNum === 1 ? 'π' : absNum + 'π';
-        
-        if (den === 1) {
-            return sign + (absNum === 0 ? '0' : piStr);
-        } else {
-            return sign + piStr + '/' + den;
-        }
-    }
 
     function renderLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -413,20 +385,6 @@
         ctx.textBaseline = 'top';
         ctx.fillText('0', originX - 6, originY + 6);
 
-        // 3. 요구사항 반영: 고정 배열이 아닌 화면 범위 내에서 계산된 모든 [X축 π/2 간격] 자동 매핑 알고리즘
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        
-        // 화면 왼쪽 끝에서 오른쪽 끝까지 들어가는 모든 π/2 분기점 역산
-        let minHalfPiIndex = Math.ceil((-originX) / ((Math.PI / 2) * scaleX));
-        let maxHalfPiIndex = Math.floor((canvas.width - originX) / ((Math.PI / 2) * scaleX));
-
-        for (let i = minHalfPiIndex; i <= maxHalfPiIndex; i++) {
-            if (i === 0) continue; // 원점은 이미 표기함
-            
-            let radianVal = i * (Math.PI / 2);
-            let posX = originX + radianVal * scaleX;
-            
             // 눈금선 및 텍스트 자동 드로잉
             ctx.strokeStyle = '#555e68';
             ctx.beginPath(); ctx.moveTo(posX, originY - 4); ctx.lineTo(posX, originY + 4); ctx.stroke();
@@ -501,8 +459,8 @@
         if (isSuccess) {
             title.textContent = "LOCK-ON SUCCESS";
             title.style.color = varColor('--radar-user');
-            desc.textContent = "모든 주파수 정수 파라미터가 완벽하게 일치했습니다.";
-            btn.textContent = "다음 타겟 탐색하기";
+            desc.textContent = "주파수 모양이 완벽하게 일치했습니다.";
+            btn.textContent = "다음 주파수 탐색하기";
         } else {
             title.textContent = "MISSION FAILED";
             title.style.color = varColor('--radar-target');
