@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>삼각함수 레이더 주파수 매칭 게임</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --radar-target: #ff3e3e;
+            --radar-user: #00ff66;
+            --accent-blue: #58a6ff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Malgun Gothic', -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .status-item {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .timer-badge {
+            background-color: #da3637;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-family: monospace;
+        }
+
+        .radar-screen-wrapper {
+            position: relative;
+            background-color: #05070a;
+            border: 2px solid #21262d;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 450px; /* 세로 공간을 더 확보하여 넓은 범위 시각화 */
+        }
+
+        /* 화면 축소/확대 UI */
+        .zoom-panel {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            gap: 6px;
+            z-index: 5;
+        }
+
+        .zoom-btn {
+            background-color: rgba(22, 27, 34, 0.85);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .zoom-btn:hover {
+            background-color: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .formula-display {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .control-group {
+            background: #21262d;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #8b949e;
+        }
+
+        .num-input {
+            width: 100%;
+            background-color: #0d1117;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 10px;
+            font-size: 1.1rem;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: monospace;
+            text-align: center;
+        }
+
+        .num-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 5px rgba(88, 166, 255, 0.4);
+        }
+
+        .overlay-message {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(13, 17, 23, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            display: none;
+            z-index: 10;
+        }
+
+        .overlay-message h2 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .overlay-message p {
+            font-size: 1.1rem;
+            color: #8b949e;
+            margin-bottom: 20px;
+        }
+
+        .overlay-message button {
+            padding: 12px 35px;
+            background-color: var(--accent-blue);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="status-item">[ROUND <span id="txt-round">1</span>]</div>
+        <div class="status-item" style="color: var(--accent-blue);">삼각함수 레이더 주파수 매칭 게임</div>
+        <div class="status-item">남은 시간: <span id="txt-timer" class="timer-badge">60.0s</span></div>
+    </div>
+
+    <div class="radar-screen-wrapper">
+        <canvas id="radarCanvas" width="760" height="450"></canvas>
+        
+        <div class="zoom-panel">
+            <div class="zoom-btn" onclick="adjustZoom(0.1)" title="확대 (Zoom In)">+</div>
+            <div class="zoom-btn" onclick="adjustZoom(-0.1)" title="축소 (Zoom Out)">−</div>
+        </div>
+
+        <div class="overlay-message" id="overlay">
+            <h2 id="overlay-title">LOCK-ON SUCCESS</h2>
+            <p id="overlay-desc">주파수가 완벽히 동기화되었습니다.</p>
+            <button onclick="nextRound()" id="overlay-btn">다음 단계 진입</button>
+        </div>
+    </div>
+
+    <div class="formula-display">
+        <span style="color: var(--radar-user); font-weight: bold;">내 레이더 수식:</span> 
+        y = <span id="val-a">1</span> · sin(<span id="val-b">1</span>x + <span id="val-c">0</span>) + <span id="val-d">0</span>
+    </div>
+
+    <div class="control-grid">
+        <div class="control-group">
+            <div class="control-label">진폭 값 입력 (a) [정수]</div>
+            <input type="number" id="input-a" class="num-input" value="1" step="1" oninput="onInputChange()">
+        </div>
+        <div class="control-group">
+            <div class="control-label">주기 배수 입력 (b) [정수]</div>
+            <input type="number" id="input-b" class="num-input" value="1" step="1" oninput="onInputChange()">
+        </div>
+        <div class="control-group">
+            <div class="control-label">x축 평행이동 입력 (c) [정수]</div>
+            <input type="number" id="input-c" class="num-input" value="0" step="1" oninput="onInputChange()">
+        </div>
+        <div class="control-group">
+            <div class="control-label">y축 평행이동 입력 (d) [정수]</div>
+            <input type="number" id="input-d" class="num-input" value="0" step="1" oninput="onInputChange()">
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('radarCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let game = {
+        round: 0,
+        timeLeft: 60.0,
+        isPlaying: false,
+        target: { a: 2, b: 1, c: 0, d: 0 },
+        user: { a: 1, b: 1, c: 0, d: 0 },
+        zoom: 1.0
+    };
+
+    let timerInterval;
+
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function initGame() {
+        game.round++;
+        game.timeLeft = 60.0;
+        game.isPlaying = true;
+
+        // 타겟의 파라미터를 정수로 생성
+        game.target.a = getRandomInt(1, 5);       
+        game.target.b = getRandomInt(1, 4);       
+        game.target.c = getRandomInt(-4, 4);      
+        game.target.d = getRandomInt(-4, 6);      
+
+        game.user = { a: 1, b: 1, c: 0, d: 0 };
+        document.getElementById('input-a').value = "1";
+        document.getElementById('input-b').value = "1";
+        document.getElementById('input-c').value = "0";
+        document.getElementById('input-d').value = "0";
+
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('txt-round').textContent = game.round;
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (!game.isPlaying) return;
+            game.timeLeft -= 0.1;
+            if (game.timeLeft <= 0) {
+                game.timeLeft = 0;
+                endGame(false);
+            }
+            document.getElementById('txt-timer').textContent = game.timeLeft.toFixed(1) + 's';
+        }, 100);
+
+        updateInterfaceText();
+    }
+
+    function updateInterfaceText() {
+        document.getElementById('val-a').textContent = Math.round(game.user.a);
+        document.getElementById('val-b').textContent = Math.round(game.user.b);
+        document.getElementById('val-c').textContent = Math.round(game.user.c);
+        document.getElementById('val-d').textContent = Math.round(game.user.d);
+    }
+
+    function onInputChange() {
+        if (!game.isPlaying) return;
+
+        let valA = Math.round(parseFloat(document.getElementById('input-a').value));
+        let valB = Math.round(parseFloat(document.getElementById('input-b').value));
+        let valC = Math.round(parseFloat(document.getElementById('input-c').value));
+        let valD = Math.round(parseFloat(document.getElementById('input-d').value));
+
+        game.user.a = isNaN(valA) ? 0 : valA;
+        game.user.b = isNaN(valB) ? 0 : valB;
+        game.user.c = isNaN(valC) ? 0 : valC;
+        game.user.d = isNaN(valD) ? 0 : valD;
+
+        updateInterfaceText();
+        checkMatchingCondition();
+    }
+
+    function adjustZoom(amount) {
+        game.zoom += amount;
+        if (game.zoom < 0.2) game.zoom = 0.2;
+        if (game.zoom > 4.0) game.zoom = 4.0;
+    }
+
+    function checkMatchingCondition() {
+        if (game.target.a === game.user.a &&
+            game.target.b === game.user.b &&
+            game.target.c === game.user.c &&
+            game.target.d === game.user.d) {
+            endGame(true);
+        }
+    }
+
+    // 최대공약수를 구하는 헬퍼 함수 (라디안 표기 단순화용)
+    function gcd(a, b) {
+        return b ? gcd(b, a % b) : Math.abs(a);
+    }
+
+    // 분수를 라디안 문자열로 정밀 포맷팅하는 함수
+    function formatRadianText(numeratorOfPi) {
+        if (numeratorOfPi === 0) return '0';
+        
+        let num = numeratorOfPi;
+        let den = 2; // π/2 간격이므로 분모는 항상 2
+        
+        // 약분
+        let commonGcd = gcd(num, den);
+        num = num / commonGcd;
+        den = den / commonGcd;
+        
+        let sign = num < 0 ? '-' : '';
+        let absNum = Math.abs(num);
+        
+        let piStr = absNum === 1 ? 'π' : absNum + 'π';
+        
+        if (den === 1) {
+            return sign + (absNum === 0 ? '0' : piStr);
+        } else {
+            return sign + piStr + '/' + den;
+        }
+    }
+
+    function renderLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 기본 단위 스케일에 축소/확대(game.zoom) 비율 적용
+        const scaleX = 50 * game.zoom;
+        const scaleY = 30 * game.zoom;
+        
+        const originX = canvas.width / 2;
+        const originY = canvas.height / 2; // 화면 정중앙을 기본 원점으로 설정
+
+        // 1. 기본 격자 배경선 그리기 (정밀 모눈 격자)
+        ctx.strokeStyle = '#161b22';
+        ctx.lineWidth = 1;
+        
+        // 격자선 역시 줌 배율에 맞춰 동적으로 가변하도록 설정
+        const gridGapX = (Math.PI / 2) * scaleX; // x축은 π/2 간격 격자
+        const gridGapY = scaleY;                 // y축은 1 단위 격자
+
+        // 원점으로부터 우측/좌측 격자선 그리기
+        for (let x = originX; x < canvas.width; x += gridGapX) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        }
+        for (let x = originX - gridGapX; x >= 0; x -= gridGapX) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        }
+        // 원점으로부터 상단/하단 격자선 그리기
+        for (let y = originY; y < canvas.height; y += gridGapY) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        }
+        for (let y = originY - gridGapY; y >= 0; y -= gridGapY) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        }
+
+        // 2. 기준 메인 주축선 (X축, Y축)
+        ctx.strokeStyle = '#444c56';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(0, originY); ctx.lineTo(canvas.width, originY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(originX, 0); ctx.lineTo(originX, canvas.height); ctx.stroke();
+
+        // 눈금 가독성 설정
+        ctx.fillStyle = '#8b949e';
+        ctx.font = '10px monospace';
+
+        // 원점 0 표기
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText('0', originX - 6, originY + 6);
+
+        // 3. 요구사항 반영: 고정 배열이 아닌 화면 범위 내에서 계산된 모든 [X축 π/2 간격] 자동 매핑 알고리즘
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        
+        // 화면 왼쪽 끝에서 오른쪽 끝까지 들어가는 모든 π/2 분기점 역산
+        let minHalfPiIndex = Math.ceil((-originX) / ((Math.PI / 2) * scaleX));
+        let maxHalfPiIndex = Math.floor((canvas.width - originX) / ((Math.PI / 2) * scaleX));
+
+        for (let i = minHalfPiIndex; i <= maxHalfPiIndex; i++) {
+            if (i === 0) continue; // 원점은 이미 표기함
+            
+            let radianVal = i * (Math.PI / 2);
+            let posX = originX + radianVal * scaleX;
+            
+            // 눈금선 및 텍스트 자동 드로잉
+            ctx.strokeStyle = '#555e68';
+            ctx.beginPath(); ctx.moveTo(posX, originY - 4); ctx.lineTo(posX, originY + 4); ctx.stroke();
+            
+            let labelText = formatRadianText(i);
+            ctx.fillText(labelText, posX, originY + 8);
+        }
+
+        // 4. 요구사항 반영: 지정 범위가 아닌 현재 화면 뷰포트 내 위/아래 모든 [Y축 정수 범위] 자동 매핑 알고리즘
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        // 화면 위쪽 끝에서 아래쪽 끝까지 들어가는 모든 정수 눈금 역산
+        let maxVisibleY = Math.floor(originY / scaleY);
+        let minVisibleY = Math.ceil((originY - canvas.height) / scaleY);
+
+        for (let i = minVisibleY; i <= maxVisibleY; i++) {
+            if (i === 0) continue; // 원점 제외
+            
+            let posY = originY - i * scaleY;
+            
+            ctx.strokeStyle = '#555e68';
+            ctx.beginPath(); ctx.moveTo(originX - 4, posY); ctx.lineTo(originX + 4, posY); ctx.stroke();
+            ctx.fillText(i.toString(), originX - 8, posY);
+        }
+
+        // 5. 타겟 웨이브 그래프 그리기 (정적)
+        ctx.strokeStyle = varColor('--radar-target');
+        ctx.lineWidth = 3.5;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = varColor('--radar-target');
+        ctx.beginPath();
+        for (let px = 0; px < canvas.width; px++) {
+            let mx = (px - originX) / scaleX;
+            let my = game.target.a * Math.sin(game.target.b * mx + game.target.c) + game.target.d;
+            let py = originY - (my * scaleY);
+            if (px === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // 6. 플레이어 웨이브 그래프 그리기 (정적)
+        ctx.strokeStyle = varColor('--radar-user');
+        ctx.lineWidth = 3;
+        ctx.shadowColor = varColor('--radar-user');
+        ctx.beginPath();
+        for (let px = 0; px < canvas.width; px++) {
+            let mx = (px - originX) / scaleX;
+            let my = game.user.a * Math.sin(game.user.b * mx + game.user.c) + game.user.d;
+            let py = originY - (my * scaleY);
+            if (px === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        
+        ctx.shadowBlur = 0;
+        animationFrameId = requestAnimationFrame(renderLoop);
+    }
+
+    function varColor(name) {
+        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function endGame(isSuccess) {
+        game.isPlaying = false;
+        
+        const overlay = document.getElementById('overlay');
+        const title = document.getElementById('overlay-title');
+        const desc = document.getElementById('overlay-desc');
+        const btn = document.getElementById('overlay-btn');
+        
+        overlay.style.display = 'flex';
+
+        if (isSuccess) {
+            title.textContent = "LOCK-ON SUCCESS";
+            title.style.color = varColor('--radar-user');
+            desc.textContent = "모든 주파수 정수 파라미터가 완벽하게 일치했습니다.";
+            btn.textContent = "다음 타겟 탐색하기";
+        } else {
+            title.textContent = "MISSION FAILED";
+            title.style.color = varColor('--radar-target');
+            desc.textContent = "제한 시간이 만료되었습니다.";
+            btn.textContent = "처음부터 다시 시도";
+            game.round = 0;
+        }
+    }
+
+    function nextRound() {
+        initGame();
+    }
+
+    window.onload = function() {
+        initGame();
+        renderLoop();
+    };
+</script>
+</body>
+</html>
