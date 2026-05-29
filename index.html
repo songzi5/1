@@ -232,7 +232,7 @@
             <button onclick="nextRound()" id="overlay-btn">다음 단계 진입</button>
         </div>
     </div>
-    <div class="helper-text">💡 그래프 스크린을 마우스로 클릭한 채 드래그하여 화면을 자유롭게 이동할 수 있습니다.</div>
+    <div class="helper-text">💡 그래프 스크린을 드래그하여 화면을 자유롭게 이동할 수 있습니다.</div>
 
     <div class="formula-display">
         <span style="color: var(--radar-user); font-weight: bold;">내 레이더 수식:</span> 
@@ -288,10 +288,10 @@
         game.timeLeft = 60.0;
         game.isPlaying = true;
 
-        // 요구사항 반영된 정수 문제 생성 범위 수정
+        // 정수 범위로 수정
         game.target.a = getRandomInt(1, 6);       // 진폭 범위 (1 ~ 6)
-        game.target.b = getRandomInt(0, 4);       // 주기 범위 변경 (0 ~ 4)
-        game.target.c = getRandomInt(-4, 4);      // x축 평행이동 범위 변경 (-4 ~ 4)
+        game.target.b = getRandomInt(0, 4);       // 주기 범위 (0 ~ 4)
+        game.target.c = getRandomInt(-4, 4);      // x축 평행이동 범위  (-4 ~ 4)
         game.target.d = getRandomInt(-6, 6);      // y축 평행이동 범위 ( -6 ~ 6)
 
         game.user = { a: 1, b: 1, c: 0, d: 0 };
@@ -364,7 +364,7 @@
         }
     }
 
-    // 마우스 드래그 이벤트
+    // 드래그 이동 가능
     canvas.addEventListener('mousedown', (e) => {
         isDragging = true;
         startX = e.clientX - game.panX;
@@ -381,7 +381,7 @@
         isDragging = false;
     });
 
-    // 터치 이벤트
+    // 터치 가능
     canvas.addEventListener('touchstart', (e) => {
         if(e.touches.length === 1) {
             isDragging = true;
