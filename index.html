@@ -89,7 +89,6 @@
             padding-right: 5px;
         }
 
-        /* 화면 제어 UI */
         .zoom-panel {
             position: absolute;
             bottom: 15px;
@@ -221,7 +220,7 @@
         <canvas id="radarCanvas" width="760" height="450"></canvas>
         
         <div class="zoom-panel">
-            <div class="zoom-btn" onclick="adjustZoom(0.1)" title="확대">+</div >
+            <div class="zoom-btn" onclick="adjustZoom(0.1)" title="확대">+</div>
             <div class="zoom-btn" onclick="resetView()" title="화면 리셋">⟲</div>
             <div class="zoom-btn" onclick="adjustZoom(-0.1)" title="축소">−</div>
         </div>
@@ -236,7 +235,7 @@
 
     <div class="formula-display">
         <span style="color: var(--radar-user); font-weight: bold;">내 레이더 수식:</span> 
-        y = <span id="val-a">1</span> · sin(<span id="val-b">1</span>x + <span id="val-c">0</span>) + <span id="val-d">0</span>
+        y = <span id="val-a">1</span> · sin(<span id="val-b">1</span>(x + <span id="val-c">0</span>)) + <span id="val-d">0</span>
     </div>
 
     <div class="control-grid">
@@ -288,11 +287,11 @@
         game.timeLeft = 60.0;
         game.isPlaying = true;
 
-        // 정수 범위로 수정
-        game.target.a = getRandomInt(1, 6);       // 진폭 범위 (1 ~ 6)
-        game.target.b = getRandomInt(0, 4);       // 주기 범위 (0 ~ 4)
-        game.target.c = getRandomInt(-4, 4);      // x축 평행이동 범위  (-4 ~ 4)
-        game.target.d = getRandomInt(-6, 6);      // y축 평행이동 범위 ( -6 ~ 6)
+        // 완전한 정수 기반 매칭을 위해 타겟 값 무작위 생성
+        game.target.a = getRandomInt(1, 6);       
+        game.target.b = getRandomInt(0, 4);       
+        game.target.c = getRandomInt(-4, 4);      
+        game.target.d = getRandomInt(-6, 6);      
 
         game.user = { a: 1, b: 1, c: 0, d: 0 };
         document.getElementById('input-a').value = "1";
@@ -364,7 +363,7 @@
         }
     }
 
-    // 드래그 이동 가능
+    // 드래그 마우스 이벤트
     canvas.addEventListener('mousedown', (e) => {
         isDragging = true;
         startX = e.clientX - game.panX;
@@ -381,7 +380,7 @@
         isDragging = false;
     });
 
-    // 터치 가능
+    // 터치 이벤트
     canvas.addEventListener('touchstart', (e) => {
         if(e.touches.length === 1) {
             isDragging = true;
@@ -413,7 +412,7 @@
         const originX = canvas.width / 2 + game.panX;
         const originY = canvas.height / 2 + game.panY;
 
-        // 1. 배경 미세 격자 드로잉
+        // 1. 배경 격자
         ctx.strokeStyle = '#161b22';
         ctx.lineWidth = 1;
 
@@ -433,7 +432,7 @@
             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
         }
 
-        // 2. 메인 축선
+        // 2. 메인 기준 축선
         ctx.strokeStyle = '#444c56';
         ctx.lineWidth = 2.5;
         ctx.beginPath(); ctx.moveTo(0, originY); ctx.lineTo(canvas.width, originY); ctx.stroke();
@@ -447,7 +446,7 @@
         ctx.textBaseline = 'top';
         ctx.fillText('0', originX - 6, originY + 6);
 
-        // 3. X축 정수 범위 실시간 매핑
+        // 3. X축 눈금 숫자 매핑
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
 
@@ -462,7 +461,7 @@
             ctx.fillText(i.toString(), posX, originY + 8);
         }
 
-        // 4. Y축 정수 범위 실시간 매핑
+        // 4. Y축 눈금 숫자 매핑
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
 
@@ -477,7 +476,7 @@
             ctx.fillText(i.toString(), originX - 8, posY);
         }
 
-        // 5. 타겟 파형 그래프
+        // 5. 타겟 파형 그래프 (정수 연산 반영 표준 수식 교정)
         ctx.strokeStyle = varColor('--radar-target');
         ctx.lineWidth = 3.5;
         ctx.shadowBlur = 8;
@@ -485,22 +484,20 @@
         ctx.beginPath();
         for (let px = 0; px < canvas.width; px++) {
             let mx = (px - originX) / scaleX;
-            let my = game.target.a * Math.sin(game.target.b * mx + game.target.c) + game.target.d;
-            let py = originY - (my * scaleY);
-            if (px === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            let my = game.target.a * Math.sin(game.target.b * (mx + game.target.c)) + game.target.d;
+            if (px === 0) ctx.moveTo(px, originY - (my * scaleY)); else ctx.lineTo(px, originY - (my * scaleY));
         }
         ctx.stroke();
 
-        // 6. 유저 파형 그래프
+        // 6. 유저 파형 그래프 (정수 연산 반영 표준 수식 교정)
         ctx.strokeStyle = varColor('--radar-user');
         ctx.lineWidth = 3;
         ctx.shadowColor = varColor('--radar-user');
         ctx.beginPath();
         for (let px = 0; px < canvas.width; px++) {
             let mx = (px - originX) / scaleX;
-            let my = game.user.a * Math.sin(game.user.b * mx + game.user.c) + game.user.d;
-            let py = originY - (my * scaleY);
-            if (px === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            let my = game.user.a * Math.sin(game.user.b * (mx + game.user.c)) + game.user.d;
+            if (px === 0) ctx.moveTo(px, originY - (my * scaleY)); else ctx.lineTo(px, originY - (my * scaleY));
         }
         ctx.stroke();
         
